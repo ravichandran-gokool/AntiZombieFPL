@@ -1,7 +1,5 @@
 # 🧟 FPL Nagbot
 
-> **Don't let your Fantasy Premier League team rot.** > An annoyed AI assistant that shames you into managing your team.
-
 ## 💡 The Problem
 You start the FPL season strong, but life gets busy. You miss one deadline, then two, and suddenly your team is full of injured players. You give up, and your ranking goes to hell.
 
@@ -17,17 +15,18 @@ You start the FPL season strong, but life gets busy. You miss one deadline, then
 * Python 3.9+
 * Expo Go app on your phone
 
-### 1. Backend Setup
-
-```bash
+### Backend
+```
 cd backend
 python -m venv venv
 source venv/bin/activate  # (Windows: venv\Scripts\activate)
 pip install -r requirements.txt
 uvicorn main:app --reload
+```
 
-### 2. Frontend Setup
-
+### Frontend
+```
 cd frontend
 npm install
 npx expo start --clear
+```
