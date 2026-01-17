@@ -14,13 +14,14 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS, FONTS } from "../constants/theme";
-import { getPerformanceShame, getTripleCaptainAdvice } from "../services/api";
+import { getPerformanceShame, getTripleCaptainAdvice, getInjuryWatchdog } from "../services/api";
 
 export default function DashboardScreen({ onLogout }) {
   const [loading, setLoading] = useState(true);
   const [teamId, setTeamId] = useState(null);
   const [shameNotification, setShameNotification] = useState(null);
   const [tripleCaptainAdvice, setTripleCaptainAdvice] = useState(null);
+  const [injuryData, setInjuryData] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -43,6 +44,10 @@ export default function DashboardScreen({ onLogout }) {
       // Fetch triple captain advice
       const tcAdvice = await getTripleCaptainAdvice(id);
       setTripleCaptainAdvice(tcAdvice);
+
+      // Fetch injury watchdog data
+      const injuries = await getInjuryWatchdog(id);
+      setInjuryData(injuries);
     } catch (error) {
       console.error("Error loading dashboard:", error);
       Alert.alert("Error", "Failed to load team data. Please try again.");
@@ -92,12 +97,72 @@ export default function DashboardScreen({ onLogout }) {
         </TouchableOpacity>
       </View>
 
-      {/* Notification Section 1 */}
+      {/* Notification Section 1 - Injuries */}
       <View style={styles.notificationCard}>
         <Text style={styles.notificationTitle}>🔔 Injuries</Text>
-        <Text style={styles.placeholderText}>
-          Notifications from teammates about player injuries and roster changes
-        </Text>
+        {injuryData && injuryData.ok ? (
+          <View
+            style={[
+              styles.notificationContent,
+              {
+                backgroundColor: injuryData.alert
+                  ? "rgba(220, 53, 69, 0.1)"
+                  : "rgba(40, 167, 69, 0.1)",
+              },
+            ]}
+          >
+            {injuryData.alert && injuryData.flagged_players.length > 0 ? (
+              <>
+                <Text style={styles.injuryAlertMessage}>
+                  ⚠️ {injuryData.unavailable_count} unavailable player{injuryData.unavailable_count > 1 ? 's' : ''} in your starting XI!
+                </Text>
+                <Text style={styles.injurySubMessage}>
+                  Gameweek {injuryData.gameweek}
+                </Text>
+                <View style={styles.injuredPlayersList}>
+                  {injuryData.flagged_players.map((player, index) => (
+                    <View key={player.player_id || index} style={styles.playerItem}>
+                      <View style={styles.playerInfo}>
+                        <Text style={styles.playerName}>{player.name}</Text>
+                        <View style={[
+                          styles.statusBadge,
+                          {
+                            backgroundColor: 
+                              player.status_code === 'i' ? 'rgba(220, 53, 69, 0.3)' :
+                              player.status_code === 'd' ? 'rgba(255, 193, 7, 0.3)' :
+                              'rgba(108, 117, 125, 0.3)'
+                          }
+                        ]}>
+                          <Text style={styles.statusText}>
+                            {player.status_label}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.injuryActionText}>
+                  Fix your team now! 🚨
+                </Text>
+              </>
+            ) : (
+              <View>
+                <Text style={styles.injuryGoodMessage}>
+                  ✅ All clear! No unavailable players in your starting XI.
+                </Text>
+                <Text style={styles.injurySubMessage}>
+                  Gameweek {injuryData.gameweek}
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <Text style={styles.placeholderText}>
+            {injuryData && !injuryData.ok 
+              ? injuryData.message || "Could not fetch injury data."
+              : "Loading injury data..."}
+          </Text>
+        )}
       </View>
 
       {/* Notification Section 2 */}
@@ -273,6 +338,65 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 18,
     fontWeight: "bold",
+  },
+  injuryAlertMessage: {
+    color: COLORS.white,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+    fontWeight: "600",
+  },
+  injuryGoodMessage: {
+    color: COLORS.white,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+    fontWeight: "500",
+  },
+  injurySubMessage: {
+    color: COLORS.textSub,
+    fontSize: 11,
+    marginBottom: 12,
+  },
+  injuredPlayersList: {
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  playerItem: {
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  playerInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  playerName: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: "600",
+    flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 10,
+  },
+  statusText: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  injuryActionText: {
+    color: COLORS.accent,
+    fontSize: 13,
+    fontWeight: "bold",
+    marginTop: 4,
+    textAlign: "center",
   },
   refreshButton: {
     backgroundColor: COLORS.primary,
