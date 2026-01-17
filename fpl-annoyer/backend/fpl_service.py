@@ -82,6 +82,112 @@ def analyze_team(team_id):
         "injured_count": len(injured_players)
     }
 
+#Part B
+BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/"
+
+def fetch_bootstrap_static():
+    res = requests.get(BOOTSTRAP_URL, timeout=15)
+    res.raise_for_status()
+    return res.json()
+
+def get_current_gameweek_id(static_data):
+    # event where is_current = True
+    current = next((e for e in static_data["events"] if e.get("is_current")), None)
+    return current["id"] if current else None
+
+def build_player_index(static_data):
+    # map player_id -> player dict
+    return {p["id"]: p for p in static_data["elements"]}
+
+
+#injury watchdog lah
+def injury_watchdog(team_id: int):
+    """
+    Checks if any unavailable players (d/i/s) are in the starting XI (picks 1-11).
+    Returns a structured response the frontend can use.
+    """
+    # 1) Get bootstrap-static once
+    try:
+        static_data = fetch_bootstrap_static()
+    except Exception:
+        return {
+            "ok": False,
+            "message": "Failed to fetch FPL static data.",
+            "flagged_players": [],
+            "unavailable_count": 0
+        }
+
+    # 2) Find current GW
+    current_gw = get_current_gameweek_id(static_data)
+    if not current_gw:
+        return {
+            "ok": False,
+            "message": "Could not determine the current gameweek.",
+            "flagged_players": [],
+            "unavailable_count": 0
+        }
+
+    # 3) Fetch user's picks for current GW
+    picks_url = f"https://fantasy.premierleague.com/api/entry/{team_id}/event/{current_gw}/picks/"
+    picks_res = requests.get(picks_url, timeout=15)
+
+    if picks_res.status_code != 200:
+        return {
+            "ok": False,
+            "message": "Could not fetch team picks. Is the team_id correct?",
+            "flagged_players": [],
+            "unavailable_count": 0
+        }
+
+    picks_data = picks_res.json()
+
+    # 4) Build quick lookup for player info
+    player_index = build_player_index(static_data)
+
+    # 5) Check starting XI (first 11 picks)
+    starting_xi = picks_data["picks"][:11]
+    unavailable = []
+    unavailable_statuses = {"d": "Doubtful", "i": "Injured", "s": "Suspended"}
+
+    for pick in starting_xi:
+        player_id = pick["element"]
+        player = player_index.get(player_id)
+
+        if not player:
+            continue
+
+        status = player.get("status")
+        if status in unavailable_statuses:
+            unavailable.append({
+                "player_id": player_id,
+                "name": player.get("web_name"),
+                "status_code": status,
+                "status_label": unavailable_statuses[status]
+            })
+
+    # 6) Return result (this is your “alert trigger” output)
+    if unavailable: names = ", ".join(p["name"] for p in unavailable)
+    return {
+        "ok": True,
+        "alert": True,
+        "notification": f"⚠️ ALERT: {names} will likely not play this gameweek.",
+        "message": "Unavailable player(s) detected in starting XI.",
+        "flagged_players": unavailable,
+        "unavailable_count": len(unavailable),
+        "gameweek": current_gw
+    }
+
+
+    return {
+        "ok": True,
+        "alert": False,
+        "message": "No unavailable players in starting XI.",
+        "flagged_players": [],
+        "unavailable_count": 0,
+        "gameweek": current_gw
+    }
+
+
 def get_triple_captain_advice(team_id):
     # 1. SETUP: Get Static Data
     static_url = "https://fantasy.premierleague.com/api/bootstrap-static/"
