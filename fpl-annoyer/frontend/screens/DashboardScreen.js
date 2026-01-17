@@ -11,10 +11,24 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Platform, 
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS, FONTS } from "../constants/theme";
 import { getPerformanceShame, getTripleCaptainAdvice, getInjuryWatchdog } from "../services/api";
+
+import * as Notifications from 'expo-notifications';
+
+const INJURY_NOTIF_ID_KEY = "injury_hourly_notif_id";
+
+
+Notifications.setNotificationHandler({
+  handleNotification: async ()=>({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true
+  }),
+});
 
 export default function DashboardScreen({ onLogout }) {
   const [loading, setLoading] = useState(true);
@@ -24,8 +38,96 @@ export default function DashboardScreen({ onLogout }) {
   const [injuryData, setInjuryData] = useState(null);
 
   useEffect(() => {
+    (async () => {
+      await ensureAndroidChannel(); // ✅ add this
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission is not granted");
+      }
+    })();
     loadDashboardData();
+
   }, []);
+
+  const triggerNotification = async () => {
+    const {status} = await Notifications.getPermissionsAsync();
+    if(status !== 'granted'){
+      Alert.alert("Permission denied");
+      return;
+    }
+    
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Hello",
+      body: "Notification triggered from button press",
+    },
+    trigger: null,
+  });  
+  };
+
+  const ensureAndroidChannel = async () => {
+    if (Platform.OS !== "android") return;
+  
+    await Notifications.setNotificationChannelAsync("injury-alerts", {
+      name: "Injury Alerts",
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250],
+      enableVibrate: true,
+    });
+  };
+  
+  const cancelInjuryReminder = async () => {
+    const existingId = await AsyncStorage.getItem(INJURY_NOTIF_ID_KEY);
+    if (!existingId) return;
+  
+    try {
+      await Notifications.cancelScheduledNotificationAsync(existingId);
+    } catch (e) {
+      console.log("Failed to cancel scheduled injury notification:", e);
+    } finally {
+      await AsyncStorage.removeItem(INJURY_NOTIF_ID_KEY);
+    }
+  };
+  
+  const scheduleHourlyInjuryReminder = async (teamId, injuries) => {
+    // Only schedule if the API response is ok and there's an alert
+    if (!injuries?.ok || !injuries.alert || !injuries.flagged_players?.length) {
+      await cancelInjuryReminder();
+      return;
+    }
+  
+    // Avoid duplicates: cancel previous, then schedule fresh (keeps message current)
+    await cancelInjuryReminder();
+  
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== "granted") return;
+  
+    const topNames = injuries.flagged_players.slice(0, 3).map(p => p.name).join(", ");
+    const extraCount = Math.max(0, injuries.flagged_players.length - 3);
+    const moreText = extraCount > 0 ? ` +${extraCount} more` : "";
+  
+    const body =
+      `${injuries.unavailable_count} unavailable in your XI (GW ${injuries.gameweek}): ` +
+      `${topNames}${moreText}. Fix your team!`;
+  
+    const notifId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "⚠️ FPL Injury Watchdog",
+        body,
+        sound: "default",
+        ...(Platform.OS === "android" ? { channelId: "injury-alerts" } : {}),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 60,
+        repeats: true,
+      },
+    });
+  
+    await AsyncStorage.setItem(INJURY_NOTIF_ID_KEY, notifId);
+  };
+  
 
   const loadDashboardData = async () => {
     try {
@@ -48,6 +150,8 @@ export default function DashboardScreen({ onLogout }) {
       // Fetch injury watchdog data
       const injuries = await getInjuryWatchdog(id);
       setInjuryData(injuries);
+
+      await scheduleHourlyInjuryReminder(id, injuries);
     } catch (error) {
       console.error("Error loading dashboard:", error);
       Alert.alert("Error", "Failed to load team data. Please try again.");
@@ -61,6 +165,7 @@ export default function DashboardScreen({ onLogout }) {
   };
 
   const handleLogout = async () => {
+    await cancelInjuryReminder();
     await AsyncStorage.removeItem("user_team_id");
     await AsyncStorage.removeItem("user_team_name");
     onLogout();
@@ -236,6 +341,9 @@ export default function DashboardScreen({ onLogout }) {
       {/* Refresh Button */}
       <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
         <Text style={styles.refreshButtonText}>Refresh Notifications</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.refreshButton} onPress={triggerNotification}>
+        <Text style={styles.refreshButtonText}>Test Notification</Text>
       </TouchableOpacity>
     </ScrollView>
   );
