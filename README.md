@@ -1,28 +1,32 @@
-# AntiZombieFPL
+# 🧟 FPL Nagbot
 
-Core features: Notifications
+## 💡 The Problem
+You start the FPL season strong, but life gets busy. You miss one deadline, then two, and suddenly your team is full of injured players. You give up, and your ranking goes to hell.
 
-Frontend
-Authentification
+## 🚀 What we built
+**FPL Caretaker** is a mobile app designed for the casual fan. It doesn't just show stats; it **harasses** you until you fix your team.
 
-Read info from game
-1. seeing performance and compare
-2. check injured players
-3. find good time to play chip
+* **🚑 Injury Watchdog:** Automatically scans your Starting XI for injuries.
+* **📢 Shame Notifications:** If your rank drops or players are injured, the app sends bombards you with notifications.
+* **🤖 AI Roast Master:** Uses OpenAI to generate personality-driven insults based on your specific team's failures.
 
-Notifications
+### Prerequisites
+* Node.js & npm
+* Python 3.9+
+* Expo Go app on your phone
 
-Backend
-Database
+### Backend
+```
+cd backend
+python -m venv venv
+source venv/bin/activate  # (Windows: venv\Scripts\activate)
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-/fpl-annoyer (Root)
-├── /frontend          # React Native (Expo)
-│   ├── /src/auth      # Auth logic (Teammate 1)
-│   ├── /src/game      # FPL API calls/Team view (Teammate 2)
-│   └── /src/notify    # Notification handlers (Teammate 3)
-├── /backend           # Python (FastAPI)
-│   ├── main.py        # API Routes
-│   ├── fpl_logic.py   # Calculations (Injuries, Rank, Roasts)
-│   └── database.py    # Supabase connection
-├── .env               # Your API keys (Do NOT commit this)
-└── README.md
+### Frontend
+```
+cd frontend
+npm install
+npx expo start --clear
+```
