@@ -17,3 +17,36 @@ export const verifyTeam = async (teamId) => {
     return { valid: false };
   }
 };
+
+export const getTeamInfo = async (teamId) => {
+  try {
+    // Calls your backend endpoint: GET /team-info/{teamId}
+    const response = await axios.get(`${API_URL}/team-info/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching team info:", error);
+    throw error;
+  }
+};
+
+export const getTeamStatus = async (teamId) => {
+  try {
+    // Calls your backend endpoint: GET /status/{teamId}
+    const response = await axios.get(`${API_URL}/status/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching team status:", error);
+    throw error;
+  }
+};
+
+export const getPerformanceShame = async (teamId) => {
+  try {
+    // Calls your backend endpoint: GET /shame/{teamId}
+    const response = await axios.get(`${API_URL}/shame/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching performance shame:", error);
+    return null;
+  }
+};

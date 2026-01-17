@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LoginScreen from "./screens/LoginScreen"; // Notice the new path
+import DashboardScreen from "./screens/DashboardScreen";
 import { COLORS } from "./constants/theme";
 
 // Placeholder Dashboard (We will build this in Phase 2)
