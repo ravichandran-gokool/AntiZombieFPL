@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
-from fpl_service import get_team_info, check_for_issues, get_basic_info, analyze_team
+from fpl_service import get_team_info, check_for_issues, get_basic_info, analyze_team, injury_watchdog
 
 app = FastAPI(title="Simple FastAPI Server", version="1.0.0")
 
@@ -29,3 +29,12 @@ def verify_team(team_id: int):
 def get_status(team_id: int):
     # This calculates the roast
     return analyze_team(team_id)
+
+@app.get("/watchdog/{team_id}")
+def watchdog(team_id: int):
+    return injury_watchdog(team_id)
+
+@app.get("/ping")
+def ping():
+    return {"ok": True}
+
