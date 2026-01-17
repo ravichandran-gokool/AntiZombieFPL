@@ -21,7 +21,7 @@ async def health_check():
 @app.get("/verify/{team_id}")
 def verify_team(team_id: int):
     data = get_basic_info(team_id)
-    if data:
+    if data.get('valid'):
         return {"valid": True, "name": data['name']}
     return {"valid": False}
 
