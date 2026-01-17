@@ -2,26 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LoginScreen from "./screens/LoginScreen"; // Notice the new path
+import DashboardScreen from "./screens/DashboardScreen";
 import { COLORS } from "./constants/theme";
-
-// Placeholder Dashboard (We will build this in Phase 2)
-const DashboardScreen = ({ onLogout }) => (
-  <View
-    style={{
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: COLORS.bgDark,
-    }}
-  >
-    <Text style={{ color: COLORS.white, fontSize: 20 }}>
-      Dashboard (Coming Soon)
-    </Text>
-    <Text style={{ color: COLORS.accent, marginTop: 20 }} onPress={onLogout}>
-      Tap to Logout
-    </Text>
-  </View>
-);
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
