@@ -81,3 +81,65 @@ def analyze_team(team_id):
         "message": message,
         "injured_count": len(injured_players)
     }
+
+def get_performance_shame(team_id):
+    """
+    Compare a team's gameweek performance against the average.
+    Returns shame notification if they underperformed.
+    """
+    try:
+        # 1. Get static data for current GW info
+        static_url = "https://fantasy.premierleague.com/api/bootstrap-static/"
+        static_data = requests.get(static_url).json()
+        
+        # 2. Find the most recent finished gameweek (not current)
+        finished_gws = [event for event in static_data['events'] if event['finished'] and not event['is_current']]
+        if not finished_gws:
+            return None
+        
+        last_gw = finished_gws[-1]['id']
+        average_score = finished_gws[-1]['average_entry_score']
+        
+        # 3. Get team's entry history to find their points for the GW
+        entry_history_url = f"https://fantasy.premierleague.com/api/entry/{team_id}/history/"
+        entry_history_resp = requests.get(entry_history_url)
+        
+        if entry_history_resp.status_code != 200:
+            return None
+        
+        entry_history = entry_history_resp.json()
+        
+        # Find the GW in history
+        gw_data = next((g for g in entry_history['current'] if g['event'] == last_gw), None)
+        
+        if not gw_data:
+            return None
+        
+        team_points = gw_data['points']
+        
+        # 4. Compare and shame if underperforming
+        if team_points < average_score:
+            deficit = average_score - team_points
+            return {
+                "type": "performance_shame",
+                "gw": last_gw,
+                "team_points": team_points,
+                "average_score": average_score,
+                "deficit": deficit,
+                "message": f"🔥 YIKES! You scored {team_points} points in GW{last_gw}, but the average was {average_score}. You're {deficit} points below average! Get it together!",
+                "shamed": True
+            }
+        else:
+            return {
+                "type": "performance_praise",
+                "gw": last_gw,
+                "team_points": team_points,
+                "average_score": average_score,
+                "surplus": team_points - average_score,
+                "message": f"🎯 Not bad! You scored {team_points} points in GW{last_gw}, which is {team_points - average_score} above average.",
+                "shamed": False
+            }
+    
+    except Exception as e:
+        print(f"Error calculating shame: {e}")
+        return None
