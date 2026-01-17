@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS, FONTS } from "../constants/theme"; // Import your theme
+import { verifyTeam } from "../services/api";
 
 export default function LoginScreen({ onLogin }) {
   const [fplId, setFplId] = useState("");
@@ -30,13 +31,34 @@ export default function LoginScreen({ onLogin }) {
     setLoading(true);
 
     try {
-      // PHASE 1: Simple Local Save (No Backend verification yet)
-      await AsyncStorage.setItem("user_team_id", fplId);
+      // PHASE 2: REAL BACKEND VERIFICATION
+      // 1. Ask the backend if this ID exists
+      const data = await verifyTeam(fplId);
 
-      // Tell App.js we are done
-      onLogin();
+      console.log(data);
+      if (data.valid) {
+        // 2. If valid, save the ID (and name if available) to phone storage
+        await AsyncStorage.setItem("user_team_id", fplId);
+
+        // Optional: Save name for the dashboard
+        if (data.name) {
+          await AsyncStorage.setItem("user_team_name", data.name);
+        }
+
+        // 3. Move to the Dashboard
+        onLogin();
+      } else {
+        // 4. If invalid, yell at the user
+        Alert.alert(
+          "Invalid ID",
+          "That team doesn't exist. Are you hallucinating?"
+        );
+      }
     } catch (error) {
-      Alert.alert("Error", "Could not save ID. Try again.");
+      Alert.alert(
+        "Error",
+        "Could not connect to server. Is your backend running?"
+      );
     } finally {
       setLoading(false);
     }
