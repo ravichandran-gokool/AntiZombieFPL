@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
-from fpl_service import get_team_info, check_for_issues, get_basic_info, analyze_team, injury_watchdog
+from fpl_service import get_team_info, check_for_issues, get_basic_info, analyze_team, injury_watchdog, get_triple_captain_advice
 
 app = FastAPI(title="Simple FastAPI Server", version="1.0.0")
 
@@ -38,3 +38,6 @@ def watchdog(team_id: int):
 def ping():
     return {"ok": True}
 
+@app.get("/triple-captain/{team_id}")
+def tc_advice(team_id: int):
+    return get_triple_captain_advice(team_id)
