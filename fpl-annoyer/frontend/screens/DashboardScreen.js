@@ -14,12 +14,13 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS, FONTS } from "../constants/theme";
-import { getPerformanceShame } from "../services/api";
+import { getPerformanceShame, getTripleCaptainAdvice } from "../services/api";
 
 export default function DashboardScreen({ onLogout }) {
   const [loading, setLoading] = useState(true);
   const [teamId, setTeamId] = useState(null);
   const [shameNotification, setShameNotification] = useState(null);
+  const [tripleCaptainAdvice, setTripleCaptainAdvice] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -38,6 +39,10 @@ export default function DashboardScreen({ onLogout }) {
       // Fetch performance shame notification
       const shame = await getPerformanceShame(id);
       setShameNotification(shame);
+
+      // Fetch triple captain advice
+      const tcAdvice = await getTripleCaptainAdvice(id);
+      setTripleCaptainAdvice(tcAdvice);
     } catch (error) {
       console.error("Error loading dashboard:", error);
       Alert.alert("Error", "Failed to load team data. Please try again.");
@@ -97,10 +102,33 @@ export default function DashboardScreen({ onLogout }) {
 
       {/* Notification Section 2 */}
       <View style={styles.notificationCard}>
-        <Text style={styles.notificationTitle}>📈 Tokens</Text>
-        <Text style={styles.placeholderText}>
-          Updates when teammates make transfers or roster changes
-        </Text>
+        <Text style={styles.notificationTitle}>📈 Triple or Nothing</Text>
+        {tripleCaptainAdvice ? (
+          <View
+            style={[
+              styles.notificationContent,
+              {
+                backgroundColor: tripleCaptainAdvice.recommend
+                  ? "rgba(255, 193, 7, 0.1)"
+                  : "rgba(108, 117, 125, 0.1)",
+              },
+            ]}
+          >
+            <Text style={styles.tcMessage}>{tripleCaptainAdvice.reason}</Text>
+            {tripleCaptainAdvice.recommend && tripleCaptainAdvice.player && (
+              <View style={styles.playerRecommendation}>
+                <Text style={styles.playerLabel}>Recommended Player:</Text>
+                <Text style={styles.playerName}>
+                  {tripleCaptainAdvice.player}
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <Text style={styles.placeholderText}>
+            Loading triple captain advice...
+          </Text>
+        )}
       </View>
 
       {/* Notification Section 3 */}
@@ -203,6 +231,29 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 12,
     fontWeight: "500",
+  },
+  tcMessage: {
+    color: COLORS.white,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
+    fontWeight: "500",
+  },
+  playerRecommendation: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.2)",
+  },
+  playerLabel: {
+    color: COLORS.textSub,
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  playerName: {
+    color: COLORS.accent,
+    fontSize: 16,
+    fontWeight: "bold",
   },
   scoreComparison: {
     flexDirection: "row",
