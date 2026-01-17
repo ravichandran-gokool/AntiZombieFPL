@@ -34,6 +34,7 @@ def get_basic_info(team_id):
     resp = requests.get(url)
     if resp.status_code == 200:
         data = resp.json()
+        print(data)
         return {"valid": True, "name": f"{data['player_first_name']} {data['player_last_name']}"}
     return {"valid": False}
 
