@@ -166,17 +166,17 @@ def injury_watchdog(team_id: int):
             })
 
     # 6) Return result (this is your “alert trigger” output)
-    if unavailable: names = ", ".join(p["name"] for p in unavailable)
-    return {
-        "ok": True,
-        "alert": True,
-        "notification": f"⚠️ ALERT: {names} will likely not play this gameweek.",
-        "message": "Unavailable player(s) detected in starting XI.",
-        "flagged_players": unavailable,
-        "unavailable_count": len(unavailable),
-        "gameweek": current_gw
-    }
-
+    if unavailable:
+        names = ", ".join(p["name"] for p in unavailable)
+        return {
+            "ok": True,
+            "alert": True,
+            "notification": f"⚠️ ALERT: {names} will likely not play this gameweek.",
+            "message": "Unavailable player(s) detected in starting XI.",
+            "flagged_players": unavailable,
+            "unavailable_count": len(unavailable),
+            "gameweek": current_gw
+        }
 
     return {
         "ok": True,
