@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
-from fpl_service import get_team_info, check_for_issues
+from fpl_service import get_team_info, check_for_issues, get_basic_info, analyze_team
 
 app = FastAPI(title="Simple FastAPI Server", version="1.0.0")
 
@@ -20,7 +20,7 @@ async def health_check():
 
 @app.get("/verify/{team_id}")
 def verify_team(team_id: int):
-    data = get_team_info(team_id)
+    data = get_basic_info(team_id)
     if data:
         return {"valid": True, "name": data['name']}
     return {"valid": False}
@@ -28,4 +28,4 @@ def verify_team(team_id: int):
 @app.get("/status/{team_id}")
 def get_status(team_id: int):
     # This calculates the roast
-    return check_for_issues(team_id)
+    return analyze_team(team_id)
