@@ -3,7 +3,11 @@ import axios from "axios";
 // 🚨 CRITICAL: Replace this with your Backend Laptop's IP Address
 // Run 'ipconfig' (Windows) or 'ifconfig' (Mac) to find it.
 // Do NOT use 'localhost' or '127.0.0.1' - it won't work on the phone.
-const API_URL = "http://172.20.10.2:8000";
+const API_URL = "http://172.20.10.3:8000";
+import { DEMO_ACCOUNTS } from "./demoData";
+const DEMO_MODE = true; // <-- switch this on/off
+
+const getDemo = (teamId) => DEMO_ACCOUNTS[String(teamId)];
 
 export const verifyTeam = async (teamId) => {
   try {
@@ -41,6 +45,7 @@ export const getTeamStatus = async (teamId) => {
 };
 
 export const getPerformanceShame = async (teamId) => {
+  if (DEMO_MODE) return getDemo(teamId)?.shame ?? { error: "No shame data available" };
   try {
     // Calls your backend endpoint: GET /shame/{teamId}
     const response = await axios.get(`${API_URL}/shame/${teamId}`);
@@ -49,10 +54,13 @@ export const getPerformanceShame = async (teamId) => {
     console.error("Error fetching performance shame:", error);
     return null;
   }
+
 };
 
 export const getTripleCaptainAdvice = async (teamId) => {
   try {
+    if (DEMO_MODE) return getDemo(teamId)?.triple_captain ?? { recommend: false, reason: "Could not fetch advice." };
+
     // Calls your backend endpoint: GET /triple-captain/{teamId}
     const response = await axios.get(`${API_URL}/triple-captain/${teamId}`);
     return response.data;
@@ -64,6 +72,9 @@ export const getTripleCaptainAdvice = async (teamId) => {
 
 export const getInjuryWatchdog = async (teamId) => {
   try {
+    if (DEMO_MODE) return getDemo(teamId)?.watchdog ?? {
+      ok: false, alert: false, message: "Could not fetch injury data.", flagged_players: [], unavailable_count: 0,
+    };
     // Calls your backend endpoint: GET /watchdog/{teamId}
     const response = await axios.get(`${API_URL}/watchdog/${teamId}`);
     return response.data;
