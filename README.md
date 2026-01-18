@@ -7,8 +7,8 @@ You start the FPL season strong, but life gets busy. You miss one deadline, then
 **FPL Caretaker** is a mobile app designed for the casual fan. It doesn't just show stats; it **harasses** you until you fix your team.
 
 * **🚑 Injury Watchdog:** Automatically scans your Starting XI for injuries.
-* **📢 Shame Notifications:** If your rank drops or players are injured, the app sends bombards you with notifications.
-* **🤖 AI Roast Master:** Uses OpenAI to generate personality-driven insults based on your specific team's failures.
+* **📢 Shame Notifications:** If your rank drops or players are injured, the app notification-shames you.
+* **🤖 Notification Dashboard:** View all your team-management failures on one page
 
 ### Prerequisites
 * Node.js & npm
