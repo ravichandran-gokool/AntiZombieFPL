@@ -2,7 +2,7 @@
  * Dashboard Screen - Displays team information and status
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,11 +11,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Platform, 
+  Platform,
+  Vibration,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS, FONTS } from "../constants/theme";
 import { getPerformanceShame, getTripleCaptainAdvice, getInjuryWatchdog } from "../services/api";
+import * as Haptics from 'expo-haptics';
 
 import * as Notifications from 'expo-notifications';
 
@@ -39,6 +41,59 @@ export default function DashboardScreen({ onLogout }) {
   const [shameNotification, setShameNotification] = useState(null);
   const [tripleCaptainAdvice, setTripleCaptainAdvice] = useState(null);
   const [injuryData, setInjuryData] = useState(null);
+  const notificationListener = useRef(null);
+  const responseListener = useRef(null);
+
+  // Really annoying vibration pattern: long vibrate, short pause, repeat multiple times
+  const triggerAnnoyingVibration = () => {
+    console.log("🔔 Triggering annoying vibration pattern...");
+    
+    // Pattern: 0ms delay, then 400ms vibrate, 200ms pause, 400ms vibrate, etc.
+    // This creates 5 strong vibrations with short pauses - very annoying!
+    const annoyingPattern = [0, 400, 200, 400, 200, 400, 200, 400, 200, 400];
+    
+    if (Platform.OS === "android") {
+      // Android: pattern format works well
+      Vibration.vibrate(annoyingPattern, false);
+    } else {
+      // iOS: Use expo-haptics for better haptic feedback
+      // Create a REALLY annoying pattern with mixed haptic types and longer delays
+      const triggerSequentialHaptics = async () => {
+        try {
+          // Use NotificationFeedbackStyle.Error for maximum intensity
+          // Then mix with Heavy impacts for variety - this creates a very noticeable pattern
+          
+          // Start with a strong notification error haptic
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Heavy impact
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Another notification error
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Heavy impact
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Final strong notification error
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          
+          console.log("✅ Haptic pattern completed");
+        } catch (error) {
+          // Fallback to basic vibration if haptics fails
+          console.log("❌ Haptics error:", error);
+          // Try fallback with basic vibration pattern
+          Vibration.vibrate([0, 500, 300, 500, 300, 500]);
+        }
+      };
+      
+      triggerSequentialHaptics();
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -48,8 +103,36 @@ export default function DashboardScreen({ onLogout }) {
         Alert.alert("Permission is not granted");
       }
     })();
+    
+    // Set up notification listener for when notifications are received
+    notificationListener.current = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        console.log("📬 Notification received:", notification);
+        // Trigger annoying vibration when notification is received
+        triggerAnnoyingVibration();
+      }
+    );
+    
+    // Also listen for when notifications are tapped/responded to
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        console.log("👆 Notification tapped:", response);
+        // Trigger haptics when user taps notification too
+        triggerAnnoyingVibration();
+      }
+    );
+
     loadDashboardData();
 
+    // Cleanup listeners on unmount
+    return () => {
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+    };
   }, []);
 
   // const triggerNotification = async () => {
@@ -71,11 +154,14 @@ export default function DashboardScreen({ onLogout }) {
   const ensureAndroidChannel = async () => {
     if (Platform.OS !== "android") return;
   
+    // Really annoying vibration pattern: long vibrate, short pause, repeat multiple times
+    const annoyingPattern = [0, 400, 200, 400, 200, 400, 200, 400, 200, 400];
+  
     await Notifications.setNotificationChannelAsync("injury-alerts", {
       name: "Injury Alerts",
       importance: Notifications.AndroidImportance.HIGH,
       sound: "default",
-      vibrationPattern: [0, 250, 250, 250],
+      vibrationPattern: annoyingPattern,
       enableVibrate: true,
     });
   };
@@ -424,9 +510,16 @@ export default function DashboardScreen({ onLogout }) {
       <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
         <Text style={styles.refreshButtonText}>Refresh Notifications</Text>
       </TouchableOpacity>
-      {/* <TouchableOpacity style={styles.refreshButton} onPress={triggerNotification}>
-        <Text style={styles.refreshButtonText}>Test Notification</Text>
-      </TouchableOpacity> */}
+      
+      {/* Test Haptics Button */}
+      <TouchableOpacity 
+        style={[styles.refreshButton, { backgroundColor: COLORS.accent, marginTop: 10 }]} 
+        onPress={triggerAnnoyingVibration}
+      >
+        <Text style={[styles.refreshButtonText, { color: COLORS.bgDark }]}>
+          🔔 Test Haptics Pattern
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
