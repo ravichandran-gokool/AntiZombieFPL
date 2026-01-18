@@ -4,7 +4,7 @@
 You start the FPL season strong, but life gets busy. You miss one deadline, then two, and suddenly your team is full of injured players. You give up, and your ranking goes to hell.
 
 ## 🚀 What we built
-**FPL Caretaker** is a mobile app designed for the casual fan. It doesn't just show stats; it **harasses** you until you fix your team.
+**FPL Nagbot** is a mobile app designed for the casual fan. It doesn't just show stats; it **harasses** you until you fix your team.
 
 * **🚑 Injury Watchdog:** Automatically scans your Starting XI for injuries.
 * **📢 Shame Notifications:** If your rank drops or players are injured, the app notification-shames you.
