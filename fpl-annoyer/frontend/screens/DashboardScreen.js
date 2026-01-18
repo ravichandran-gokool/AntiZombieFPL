@@ -209,7 +209,7 @@ export default function DashboardScreen({ onLogout }) {
 
     const body =
       `${injuries.unavailable_count} player(s) injured in your XI! (GW ${injuries.gameweek}): ` +
-      `${topNames}${moreText}. I won't stop till you fix your team!`;
+      `${topNames}${moreText}. I WON'T STOP TILL YOU FIX YOUR TEAM!!!`;
 
     const notifId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -329,6 +329,9 @@ export default function DashboardScreen({ onLogout }) {
 
       // Fetch injury watchdog data
       const injuries = await getInjuryWatchdog(id);
+      console.log("injuries:", injuries);
+      console.log("flagged_players length:", injuries?.flagged_players?.length);
+      setInjuryData(injuries);
       setInjuryData(injuries);
       await scheduleHourlyInjuryReminder(id, injuries);
     } catch (error) {
@@ -400,9 +403,7 @@ export default function DashboardScreen({ onLogout }) {
             {injuryData.alert && injuryData.flagged_players.length > 0 ? (
               <>
                 <Text style={styles.injuryAlertMessage}>
-                  ⚠️ {injuryData.unavailable_count} unavailable player
-                  {injuryData.unavailable_count > 1 ? "s" : ""} in your starting
-                  XI!
+                  🏥 Hospital FC Team List
                 </Text>
                 <Text style={styles.injurySubMessage}>
                   Gameweek {injuryData.gameweek}
@@ -493,7 +494,7 @@ export default function DashboardScreen({ onLogout }) {
 
       {/* Notification Section 3 */}
       <View style={styles.notificationCard}>
-        <Text style={styles.notificationTitle}>🏆 Shit players</Text>
+        <Text style={styles.notificationTitle}>🏆 Stinky players</Text>
         {shameNotification && !shameNotification.error ? (
           <View
             style={[

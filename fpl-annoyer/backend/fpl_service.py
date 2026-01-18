@@ -326,7 +326,7 @@ def get_performance_shame(team_id):
                 "team_points": team_points,
                 "average_score": average_score,
                 "deficit": deficit,
-                "message": f"🔥 YIKES! You scored {team_points} points in GW{last_gw}, but the average was {average_score}. You're {deficit} points below average! Get it together!",
+                "message": f"🔥 WHAT DO YOU THINK OF TOTTENHAM? YOUUUU!!! You scored {team_points} points in GW{last_gw}, but the average was {average_score}. You're {deficit} points below average! Get it together!",
                 "shamed": True
             }
         else:
