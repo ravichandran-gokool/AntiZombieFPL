@@ -20,7 +20,10 @@ import { getPerformanceShame, getTripleCaptainAdvice, getInjuryWatchdog } from "
 import * as Notifications from 'expo-notifications';
 
 const INJURY_NOTIF_ID_KEY = "injury_hourly_notif_id";
+const SHAME_WEEKLY_NOTIF_ID_KEY = "shame_weekly_notif_id";
+const TC_WEEKLY_NOTIF_ID_KEY = "tc_weekly_notif_id";
 
+const WEEK_SECONDS = 7 * 24 * 60 * 60;
 
 Notifications.setNotificationHandler({
   handleNotification: async ()=>({
@@ -49,21 +52,21 @@ export default function DashboardScreen({ onLogout }) {
 
   }, []);
 
-  const triggerNotification = async () => {
-    const {status} = await Notifications.getPermissionsAsync();
-    if(status !== 'granted'){
-      Alert.alert("Permission denied");
-      return;
-    }
+  // const triggerNotification = async () => {
+  //   const {status} = await Notifications.getPermissionsAsync();
+  //   if(status !== 'granted'){
+  //     Alert.alert("Permission denied");
+  //     return;
+  //   }
     
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "Hello",
-      body: "Notification triggered from button press",
-    },
-    trigger: null,
-  });  
-  };
+  // await Notifications.scheduleNotificationAsync({
+  //   content: {
+  //     title: "Hello",
+  //     body: "Notification triggered from button press",
+  //   },
+  //   trigger: null,
+  // });  
+  // };
 
   const ensureAndroidChannel = async () => {
     if (Platform.OS !== "android") return;
@@ -108,12 +111,12 @@ export default function DashboardScreen({ onLogout }) {
     const moreText = extraCount > 0 ? ` +${extraCount} more` : "";
   
     const body =
-      `${injuries.unavailable_count} unavailable in your XI (GW ${injuries.gameweek}): ` +
-      `${topNames}${moreText}. Fix your team!`;
+      `${injuries.unavailable_count} player(s) injured in your XI! (GW ${injuries.gameweek}): ` +
+      `${topNames}${moreText}. I won't stop till you fix your team!`;
   
     const notifId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "⚠️ FPL Injury Watchdog",
+        title: "🤬 FIX YOUR FPL TEAM!!!",
         body,
         sound: "default",
         ...(Platform.OS === "android" ? { channelId: "injury-alerts" } : {}),
@@ -127,7 +130,82 @@ export default function DashboardScreen({ onLogout }) {
   
     await AsyncStorage.setItem(INJURY_NOTIF_ID_KEY, notifId);
   };
+
+  const cancelWeeklyNotif = async (storageKey) => {
+    const existingId = await AsyncStorage.getItem(storageKey);
+    if (!existingId) return;
   
+    try {
+      await Notifications.cancelScheduledNotificationAsync(existingId);
+    } catch (e) {
+      console.log("Failed to cancel scheduled notification:", e);
+    } finally {
+      await AsyncStorage.removeItem(storageKey);
+    }
+  };
+
+  const scheduleWeeklyShameReminder = async (teamId, shame) => {
+    // Only remind weekly if you're currently "shamed"
+    if (!shame || shame.error || !shame.shamed) {
+      await cancelWeeklyNotif(SHAME_WEEKLY_NOTIF_ID_KEY);
+      return;
+    }
+  
+    await cancelWeeklyNotif(SHAME_WEEKLY_NOTIF_ID_KEY);
+  
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== "granted") return;
+  
+    const notifId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "📉 Performance Shame (Weekly)",
+        body: shame.message || "You're below average. Consider fixing your team!",
+        sound: "default",
+        data: { type: "shame", teamId },
+        ...(Platform.OS === "android" ? { channelId: "injury-alerts" } : {}),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: WEEK_SECONDS,
+        repeats: true,
+      },
+    });
+  
+    await AsyncStorage.setItem(SHAME_WEEKLY_NOTIF_ID_KEY, notifId);
+  };
+  
+  const scheduleWeeklyTripleCaptainReminder = async (teamId, tcAdvice) => {
+    // Only remind weekly if recommendation is true
+    if (!tcAdvice || !tcAdvice.recommend) {
+      await cancelWeeklyNotif(TC_WEEKLY_NOTIF_ID_KEY);
+      return;
+    }
+  
+    await cancelWeeklyNotif(TC_WEEKLY_NOTIF_ID_KEY);
+  
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== "granted") return;
+  
+    const player = tcAdvice.player ? ` Use Triple Captain on ${tcAdvice.player}.` : "";
+    const reason = tcAdvice.reason ? ` ${tcAdvice.reason}` : "";
+  
+    const notifId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "🧠 Triple Captain Tip (Weekly)",
+        body: `${reason}${player}`.trim(),
+        sound: "default",
+        data: { type: "triple_captain", teamId },
+        ...(Platform.OS === "android" ? { channelId: "injury-alerts" } : {}),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: WEEK_SECONDS,
+        repeats: true,
+      },
+    });
+  
+    await AsyncStorage.setItem(TC_WEEKLY_NOTIF_ID_KEY, notifId);
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -142,16 +220,18 @@ export default function DashboardScreen({ onLogout }) {
       // Fetch performance shame notification
       const shame = await getPerformanceShame(id);
       setShameNotification(shame);
+      await scheduleWeeklyShameReminder(id, shame);
 
       // Fetch triple captain advice
       const tcAdvice = await getTripleCaptainAdvice(id);
       setTripleCaptainAdvice(tcAdvice);
+      await scheduleWeeklyTripleCaptainReminder(id, tcAdvice);
 
       // Fetch injury watchdog data
       const injuries = await getInjuryWatchdog(id);
       setInjuryData(injuries);
-
       await scheduleHourlyInjuryReminder(id, injuries);
+
     } catch (error) {
       console.error("Error loading dashboard:", error);
       Alert.alert("Error", "Failed to load team data. Please try again.");
@@ -166,6 +246,8 @@ export default function DashboardScreen({ onLogout }) {
 
   const handleLogout = async () => {
     await cancelInjuryReminder();
+    await cancelWeeklyNotif(SHAME_WEEKLY_NOTIF_ID_KEY);
+    await cancelWeeklyNotif(TC_WEEKLY_NOTIF_ID_KEY);
     await AsyncStorage.removeItem("user_team_id");
     await AsyncStorage.removeItem("user_team_name");
     onLogout();
@@ -342,9 +424,9 @@ export default function DashboardScreen({ onLogout }) {
       <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
         <Text style={styles.refreshButtonText}>Refresh Notifications</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.refreshButton} onPress={triggerNotification}>
+      {/* <TouchableOpacity style={styles.refreshButton} onPress={triggerNotification}>
         <Text style={styles.refreshButtonText}>Test Notification</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </ScrollView>
   );
 }
@@ -361,6 +443,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
+    marginTop: 20,
   },
   headerTitle: {
     fontSize: FONTS.headerSize,
