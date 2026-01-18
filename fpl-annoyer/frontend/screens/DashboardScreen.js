@@ -16,10 +16,14 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS, FONTS } from "../constants/theme";
-import { getPerformanceShame, getTripleCaptainAdvice, getInjuryWatchdog } from "../services/api";
-import * as Haptics from 'expo-haptics';
+import {
+  getPerformanceShame,
+  getTripleCaptainAdvice,
+  getInjuryWatchdog,
+} from "../services/api";
+import * as Haptics from "expo-haptics";
 
-import * as Notifications from 'expo-notifications';
+import * as Notifications from "expo-notifications";
 
 const INJURY_NOTIF_ID_KEY = "injury_hourly_notif_id";
 const SHAME_WEEKLY_NOTIF_ID_KEY = "shame_weekly_notif_id";
@@ -28,10 +32,10 @@ const TC_WEEKLY_NOTIF_ID_KEY = "tc_weekly_notif_id";
 const WEEK_SECONDS = 7 * 24 * 60 * 60;
 
 Notifications.setNotificationHandler({
-  handleNotification: async ()=>({
+  handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: true
+    shouldSetBadge: true,
   }),
 });
 
@@ -47,11 +51,11 @@ export default function DashboardScreen({ onLogout }) {
   // Really annoying vibration pattern: long vibrate, short pause, repeat multiple times
   const triggerAnnoyingVibration = () => {
     console.log("🔔 Triggering annoying vibration pattern...");
-    
+
     // Pattern: 0ms delay, then 400ms vibrate, 200ms pause, 400ms vibrate, etc.
     // This creates 5 strong vibrations with short pauses - very annoying!
     const annoyingPattern = [0, 400, 200, 400, 200, 400, 200, 400, 200, 400];
-    
+
     if (Platform.OS === "android") {
       // Android: pattern format works well
       Vibration.vibrate(annoyingPattern, false);
@@ -62,26 +66,32 @@ export default function DashboardScreen({ onLogout }) {
         try {
           // Use NotificationFeedbackStyle.Error for maximum intensity
           // Then mix with Heavy impacts for variety - this creates a very noticeable pattern
-          
+
           // Start with a strong notification error haptic
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
+          await Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Error
+          );
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
           // Heavy impact
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
           // Another notification error
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
+          await Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Error
+          );
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
           // Heavy impact
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
           // Final strong notification error
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          
+          await Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Error
+          );
+
           console.log("✅ Haptic pattern completed");
         } catch (error) {
           // Fallback to basic vibration if haptics fails
@@ -90,7 +100,7 @@ export default function DashboardScreen({ onLogout }) {
           Vibration.vibrate([0, 500, 300, 500, 300, 500]);
         }
       };
-      
+
       triggerSequentialHaptics();
     }
   };
@@ -103,24 +113,22 @@ export default function DashboardScreen({ onLogout }) {
         Alert.alert("Permission is not granted");
       }
     })();
-    
+
     // Set up notification listener for when notifications are received
-    notificationListener.current = Notifications.addNotificationReceivedListener(
-      (notification) => {
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
         console.log("📬 Notification received:", notification);
         // Trigger annoying vibration when notification is received
         triggerAnnoyingVibration();
-      }
-    );
-    
+      });
+
     // Also listen for when notifications are tapped/responded to
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
         console.log("👆 Notification tapped:", response);
         // Trigger haptics when user taps notification too
         triggerAnnoyingVibration();
-      }
-    );
+      });
 
     loadDashboardData();
 
@@ -141,22 +149,22 @@ export default function DashboardScreen({ onLogout }) {
   //     Alert.alert("Permission denied");
   //     return;
   //   }
-    
+
   // await Notifications.scheduleNotificationAsync({
   //   content: {
   //     title: "Hello",
   //     body: "Notification triggered from button press",
   //   },
   //   trigger: null,
-  // });  
+  // });
   // };
 
   const ensureAndroidChannel = async () => {
     if (Platform.OS !== "android") return;
-  
+
     // Really annoying vibration pattern: long vibrate, short pause, repeat multiple times
     const annoyingPattern = [0, 400, 200, 400, 200, 400, 200, 400, 200, 400];
-  
+
     await Notifications.setNotificationChannelAsync("injury-alerts", {
       name: "Injury Alerts",
       importance: Notifications.AndroidImportance.HIGH,
@@ -165,11 +173,11 @@ export default function DashboardScreen({ onLogout }) {
       enableVibrate: true,
     });
   };
-  
+
   const cancelInjuryReminder = async () => {
     const existingId = await AsyncStorage.getItem(INJURY_NOTIF_ID_KEY);
     if (!existingId) return;
-  
+
     try {
       await Notifications.cancelScheduledNotificationAsync(existingId);
     } catch (e) {
@@ -178,28 +186,31 @@ export default function DashboardScreen({ onLogout }) {
       await AsyncStorage.removeItem(INJURY_NOTIF_ID_KEY);
     }
   };
-  
+
   const scheduleHourlyInjuryReminder = async (teamId, injuries) => {
     // Only schedule if the API response is ok and there's an alert
     if (!injuries?.ok || !injuries.alert || !injuries.flagged_players?.length) {
       await cancelInjuryReminder();
       return;
     }
-  
+
     // Avoid duplicates: cancel previous, then schedule fresh (keeps message current)
     await cancelInjuryReminder();
-  
+
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== "granted") return;
-  
-    const topNames = injuries.flagged_players.slice(0, 3).map(p => p.name).join(", ");
+
+    const topNames = injuries.flagged_players
+      .slice(0, 3)
+      .map((p) => p.name)
+      .join(", ");
     const extraCount = Math.max(0, injuries.flagged_players.length - 3);
     const moreText = extraCount > 0 ? ` +${extraCount} more` : "";
-  
+
     const body =
       `${injuries.unavailable_count} player(s) injured in your XI! (GW ${injuries.gameweek}): ` +
       `${topNames}${moreText}. I won't stop till you fix your team!`;
-  
+
     const notifId = await Notifications.scheduleNotificationAsync({
       content: {
         title: "🤬 FIX YOUR FPL TEAM!!!",
@@ -213,14 +224,14 @@ export default function DashboardScreen({ onLogout }) {
         repeats: true,
       },
     });
-  
+
     await AsyncStorage.setItem(INJURY_NOTIF_ID_KEY, notifId);
   };
 
   const cancelWeeklyNotif = async (storageKey) => {
     const existingId = await AsyncStorage.getItem(storageKey);
     if (!existingId) return;
-  
+
     try {
       await Notifications.cancelScheduledNotificationAsync(existingId);
     } catch (e) {
@@ -236,16 +247,17 @@ export default function DashboardScreen({ onLogout }) {
       await cancelWeeklyNotif(SHAME_WEEKLY_NOTIF_ID_KEY);
       return;
     }
-  
+
     await cancelWeeklyNotif(SHAME_WEEKLY_NOTIF_ID_KEY);
-  
+
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== "granted") return;
-  
+
     const notifId = await Notifications.scheduleNotificationAsync({
       content: {
         title: "📉 Performance Shame (Weekly)",
-        body: shame.message || "You're below average. Consider fixing your team!",
+        body:
+          shame.message || "You're below average. Consider fixing your team!",
         sound: "default",
         data: { type: "shame", teamId },
         ...(Platform.OS === "android" ? { channelId: "injury-alerts" } : {}),
@@ -256,25 +268,27 @@ export default function DashboardScreen({ onLogout }) {
         repeats: true,
       },
     });
-  
+
     await AsyncStorage.setItem(SHAME_WEEKLY_NOTIF_ID_KEY, notifId);
   };
-  
+
   const scheduleWeeklyTripleCaptainReminder = async (teamId, tcAdvice) => {
     // Only remind weekly if recommendation is true
     if (!tcAdvice || !tcAdvice.recommend) {
       await cancelWeeklyNotif(TC_WEEKLY_NOTIF_ID_KEY);
       return;
     }
-  
+
     await cancelWeeklyNotif(TC_WEEKLY_NOTIF_ID_KEY);
-  
+
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== "granted") return;
-  
-    const player = tcAdvice.player ? ` Use Triple Captain on ${tcAdvice.player}.` : "";
+
+    const player = tcAdvice.player
+      ? ` Use Triple Captain on ${tcAdvice.player}.`
+      : "";
     const reason = tcAdvice.reason ? ` ${tcAdvice.reason}` : "";
-  
+
     const notifId = await Notifications.scheduleNotificationAsync({
       content: {
         title: "🧠 Triple Captain Tip (Weekly)",
@@ -289,7 +303,7 @@ export default function DashboardScreen({ onLogout }) {
         repeats: true,
       },
     });
-  
+
     await AsyncStorage.setItem(TC_WEEKLY_NOTIF_ID_KEY, notifId);
   };
 
@@ -317,7 +331,6 @@ export default function DashboardScreen({ onLogout }) {
       const injuries = await getInjuryWatchdog(id);
       setInjuryData(injuries);
       await scheduleHourlyInjuryReminder(id, injuries);
-
     } catch (error) {
       console.error("Error loading dashboard:", error);
       Alert.alert("Error", "Failed to load team data. Please try again.");
@@ -364,7 +377,7 @@ export default function DashboardScreen({ onLogout }) {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>FPL MANAGER</Text>
+        <Text style={styles.headerTitle}>FPL NAGBOT</Text>
         <TouchableOpacity onPress={handleLogout}>
           <Text style={styles.logoutButton}>Logout</Text>
         </TouchableOpacity>
@@ -387,25 +400,34 @@ export default function DashboardScreen({ onLogout }) {
             {injuryData.alert && injuryData.flagged_players.length > 0 ? (
               <>
                 <Text style={styles.injuryAlertMessage}>
-                  ⚠️ {injuryData.unavailable_count} unavailable player{injuryData.unavailable_count > 1 ? 's' : ''} in your starting XI!
+                  ⚠️ {injuryData.unavailable_count} unavailable player
+                  {injuryData.unavailable_count > 1 ? "s" : ""} in your starting
+                  XI!
                 </Text>
                 <Text style={styles.injurySubMessage}>
                   Gameweek {injuryData.gameweek}
                 </Text>
                 <View style={styles.injuredPlayersList}>
                   {injuryData.flagged_players.map((player, index) => (
-                    <View key={player.player_id || index} style={styles.playerItem}>
+                    <View
+                      key={player.player_id || index}
+                      style={styles.playerItem}
+                    >
                       <View style={styles.playerInfo}>
                         <Text style={styles.playerName}>{player.name}</Text>
-                        <View style={[
-                          styles.statusBadge,
-                          {
-                            backgroundColor: 
-                              player.status_code === 'i' ? 'rgba(220, 53, 69, 0.3)' :
-                              player.status_code === 'd' ? 'rgba(255, 193, 7, 0.3)' :
-                              'rgba(108, 117, 125, 0.3)'
-                          }
-                        ]}>
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            {
+                              backgroundColor:
+                                player.status_code === "i"
+                                  ? "rgba(220, 53, 69, 0.3)"
+                                  : player.status_code === "d"
+                                  ? "rgba(255, 193, 7, 0.3)"
+                                  : "rgba(108, 117, 125, 0.3)",
+                            },
+                          ]}
+                        >
                           <Text style={styles.statusText}>
                             {player.status_label}
                           </Text>
@@ -431,7 +453,7 @@ export default function DashboardScreen({ onLogout }) {
           </View>
         ) : (
           <Text style={styles.placeholderText}>
-            {injuryData && !injuryData.ok 
+            {injuryData && !injuryData.ok
               ? injuryData.message || "Could not fetch injury data."
               : "Loading injury data..."}
           </Text>
@@ -509,16 +531,6 @@ export default function DashboardScreen({ onLogout }) {
       {/* Refresh Button */}
       <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
         <Text style={styles.refreshButtonText}>Refresh Notifications</Text>
-      </TouchableOpacity>
-      
-      {/* Test Haptics Button */}
-      <TouchableOpacity 
-        style={[styles.refreshButton, { backgroundColor: COLORS.accent, marginTop: 10 }]} 
-        onPress={triggerAnnoyingVibration}
-      >
-        <Text style={[styles.refreshButtonText, { color: COLORS.bgDark }]}>
-          🔔 Test Haptics Pattern
-        </Text>
       </TouchableOpacity>
     </ScrollView>
   );

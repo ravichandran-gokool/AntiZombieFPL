@@ -75,7 +75,7 @@ export default function LoginScreen({ onLogin }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>FPL MANAGER</Text>
+          <Text style={styles.title}>FPL NAGBOT</Text>
           <Text style={styles.subtitle}>
             Enter your Team ID to start the suffering.
           </Text>
