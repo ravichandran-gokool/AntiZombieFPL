@@ -3,7 +3,7 @@ import axios from "axios";
 // 🚨 CRITICAL: Replace this with your Backend Laptop's IP Address
 // Run 'ipconfig' (Windows) or 'ifconfig' (Mac) to find it.
 // Do NOT use 'localhost' or '127.0.0.1' - it won't work on the phone.
-const API_URL = "http://172.20.10.3:8000";
+const API_URL = "http://172.20.10.2:8000";
 
 export const verifyTeam = async (teamId) => {
   try {
@@ -69,12 +69,12 @@ export const getInjuryWatchdog = async (teamId) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching injury watchdog:", error);
-    return { 
-      ok: false, 
-      alert: false, 
+    return {
+      ok: false,
+      alert: false,
       message: "Could not fetch injury data.",
       flagged_players: [],
-      unavailable_count: 0
+      unavailable_count: 0,
     };
   }
 };
